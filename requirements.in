@@ -1,4 +1,3 @@
 line-bot-sdk
 fastapi
-uvicorn[standard]
 pyyaml
