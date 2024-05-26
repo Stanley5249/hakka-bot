@@ -2,9 +2,10 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Annotated, AsyncIterator, Sequence, cast
+from typing import TYPE_CHECKING, Annotated, Any, AsyncIterator, cast
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.staticfiles import StaticFiles
 from linebot.v3 import WebhookParser
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
@@ -12,17 +13,15 @@ from linebot.v3.messaging import (
     AsyncApiClient,
     AsyncMessagingApi,
     Configuration,
-    Message,
     ReplyMessageRequest,
-    ReplyMessageResponse,
 )
 from linebot.v3.webhooks import (
     Event,
     FollowEvent,
     MessageEvent,
+    PostbackEvent,
     Source,
     TextMessageContent,
-    PostbackEvent,
 )
 
 from chat import Chatflow
@@ -45,7 +44,6 @@ CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 assert CHANNEL_SECRET is not None, "LINE_CHANNEL_SECRET is not set"
 assert CHANNEL_ACCESS_TOKEN is not None, "LINE_CHANNEL_ACCESS_TOKEN is not set"
 
-parser = WebhookParser(CHANNEL_SECRET)
 
 # ================================================================
 # FastAPI setup
@@ -53,28 +51,34 @@ parser = WebhookParser(CHANNEL_SECRET)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[dict[str, Any]]:
     loop = asyncio.get_event_loop()
     loop.set_task_factory(asyncio.eager_task_factory)  # type: ignore
 
+    parser = WebhookParser(CHANNEL_SECRET)
     line_config = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
     line_client = AsyncApiClient(line_config)
     line_api = AsyncMessagingApi(line_client)
-
-    app.state.line_api = line_api
+    chatflow = Chatflow()
 
     async with line_client:
-        yield
+        yield {
+            "parser": parser,
+            "line_api": line_api,
+            "chatflow": chatflow,
+        }
 
 
 app = FastAPI(lifespan=lifespan)
-chatflow = Chatflow()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 async def line_parse_events(
     request: Request,
     x_line_signature: Annotated[str, Header()],
 ) -> list[Event]:
+    parser: WebhookParser = app.state.parser
+
     body = await request.body()
     body = body.decode()
 
@@ -82,7 +86,6 @@ async def line_parse_events(
         events = parser.parse(body, x_line_signature)
 
     except InvalidSignatureError as e:
-        logger.exception(e)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, e.message)
 
     if TYPE_CHECKING:
@@ -91,41 +94,17 @@ async def line_parse_events(
     return events
 
 
-async def line_reply_message(
-    line_api: AsyncMessagingApi,
-    reply_token: str,
-    messages: Sequence[Message],
-) -> ReplyMessageResponse:
-    req = ReplyMessageRequest(
-        replyToken=reply_token,
-        messages=messages,
-        notificationDisabled=None,
-    )
-    try:
-        return await line_api.reply_message(req)
-
-    except ApiException as e:
-        logger.exception(e)
-
-        if TYPE_CHECKING:
-            e.body = cast(str, e.body)
-
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            json.loads(e.body),
-        )
-
-
 @app.post("/callback")
 async def handle_callback(
     events: Annotated[list[Event], Depends(line_parse_events)],
 ) -> str:
+    chatflow: Chatflow = app.state.chatflow
     for event in events:
-        await handle_event(event)
+        await handle_event(chatflow, event)
     return "OK"
 
 
-async def handle_event(event: Event) -> None:
+async def handle_event(chatflow: Chatflow, event: Event) -> None:
     match event:
         case Event(
             source=Source(user_id=str(user_id)),
@@ -150,11 +129,23 @@ async def handle_event(event: Event) -> None:
         case _:
             return
 
-    await line_reply_message(
-        app.state.line_api,
-        token,
-        chat.get_messages(),
+    line_api: AsyncMessagingApi = app.state.line_api
+
+    req = ReplyMessageRequest(
+        replyToken=token,
+        messages=chat.get_messages(),
+        notificationDisabled=None,
     )
+    try:
+        await line_api.reply_message(req)
+
+    except ApiException as e:
+        if TYPE_CHECKING:
+            e.body = cast(str, e.body)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            json.loads(e.body),
+        )
 
 
 if __name__ == "__main__":
