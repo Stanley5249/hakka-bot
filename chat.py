@@ -242,8 +242,9 @@ def parse_message(raw: Any) -> Message:
                 contents=FlexContainer.from_dict(data),
             )
         case {
-            "type": "template_1",
+            "type": "template",
             "data": {
+                "id": int(id),
                 "label": str(label),
                 "title": str(title),
                 "options": [*options],
@@ -251,25 +252,16 @@ def parse_message(raw: Any) -> Message:
                 "bg": str(bg),
             },
         } if all(isinstance(opt, str) for opt in options):
+            if id == 1:
+                data = from_template_1(label, title, options, fg, bg)
+            elif id == 2:
+                data = from_template_2(label, title, options, fg, bg)
+            else:
+                raise ValueError(f"invalid template id, {id}")
             return FlexMessage(
                 quickReply=None,
                 altText="flex",
-                contents=from_template_1(label, title, options, fg, bg),
-            )
-        case {
-            "type": "template_2",
-            "data": {
-                "label": str(label),
-                "title": str(title),
-                "options": [*options],
-                "fg": str(fg),
-                "bg": str(bg),
-            },
-        } if all(isinstance(opt, str) for opt in options):
-            return FlexMessage(
-                quickReply=None,
-                altText="flex",
-                contents=from_template_2(label, title, options, fg, bg),
+                contents=FlexContainer.from_dict(data),
             )
     raise ValueError(f"invalid message type, {raw}")
 
@@ -280,43 +272,38 @@ def from_template_1(
     options: Sequence[str],
     fg: str,
     bg: str,
-) -> FlexContainer:
-    return FlexContainer.from_dict(
-        {
-            "body": {
-                "contents": [{"text": title, "type": "text", "wrap": True}],
-                "layout": "vertical",
-                "type": "box",
-            },
-            "footer": {
-                "contents": [
-                    {"color": fg, "type": "separator"},
-                    *(
-                        {
-                            "action": {
-                                "data": f"q={label}&a={a}",
-                                "displayText": f"我選{q}！",
-                                "label": q,
-                                "type": "postback",
-                            },
-                            "color": fg,
-                            "type": "button",
-                        }
-                        for q, a in zip(options, string.ascii_uppercase)
-                    ),
-                    {"color": fg, "type": "separator"},
-                ],
-                "layout": "vertical",
-                "spacing": "sm",
-                "type": "box",
-            },
-            "styles": {
-                "body": {"backgroundColor": bg},
-                "footer": {"backgroundColor": bg},
-            },
-            "type": "bubble",
-        }
-    )
+) -> dict[str, Any]:
+    return {
+        "body": {
+            "contents": [{"text": title, "type": "text", "wrap": True}],
+            "layout": "vertical",
+            "type": "box",
+        },
+        "footer": {
+            "contents": [
+                {"color": fg, "type": "separator"},
+                *(
+                    {
+                        "action": {
+                            "data": f"q={label}&a={a}",
+                            "displayText": f"我選{q}！",
+                            "label": q,
+                            "type": "postback",
+                        },
+                        "color": fg,
+                        "type": "button",
+                    }
+                    for q, a in zip(options, string.ascii_uppercase)
+                ),
+                {"color": fg, "type": "separator"},
+            ],
+            "layout": "vertical",
+            "spacing": "sm",
+            "type": "box",
+        },
+        "styles": {"body": {"backgroundColor": bg}, "footer": {"backgroundColor": bg}},
+        "type": "bubble",
+    }
 
 
 def from_template_2(
@@ -325,59 +312,57 @@ def from_template_2(
     options: Sequence[str],
     fg: str,
     bg: str,
-) -> FlexContainer:
-    return FlexContainer.from_dict(
-        {
-            "type": "carousel",
-            "contents": [
+) -> dict[str, Any]:
+    return {
+        "type": "carousel",
+        "contents": [
+            {
+                "type": "bubble",
+                "size": "nano",
+                "body": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                        {"type": "text", "text": title, "wrap": True, "size": "sm"}
+                    ],
+                },
+                "styles": {"body": {"backgroundColor": bg}},
+            },
+            *(
                 {
                     "type": "bubble",
                     "size": "nano",
                     "body": {
                         "type": "box",
                         "layout": "vertical",
+                        "contents": [{"type": "text", "text": opt, "wrap": True}],
+                    },
+                    "footer": {
+                        "type": "box",
+                        "layout": "vertical",
                         "contents": [
-                            {"type": "text", "text": title, "wrap": True, "size": "sm"}
+                            {"type": "separator", "color": fg},
+                            {
+                                "type": "button",
+                                "action": {
+                                    "type": "postback",
+                                    "label": a,
+                                    "data": f"q={label}&a={a}",
+                                    "displayText": f"我選{a}！",
+                                },
+                                "color": fg,
+                            },
                         ],
                     },
-                    "styles": {"body": {"backgroundColor": bg}},
-                },
-                *(
-                    {
-                        "type": "bubble",
-                        "size": "nano",
-                        "body": {
-                            "type": "box",
-                            "layout": "vertical",
-                            "contents": [{"type": "text", "text": opt, "wrap": True}],
-                        },
-                        "footer": {
-                            "type": "box",
-                            "layout": "vertical",
-                            "contents": [
-                                {"type": "separator", "color": fg},
-                                {
-                                    "type": "button",
-                                    "action": {
-                                        "type": "postback",
-                                        "label": a,
-                                        "data": f"q={label}&a={a}",
-                                        "displayText": f"我選{a}！",
-                                    },
-                                    "color": fg,
-                                },
-                            ],
-                        },
-                        "styles": {
-                            "body": {"backgroundColor": bg},
-                            "footer": {"backgroundColor": bg},
-                        },
-                    }
-                    for opt, a in zip(options, string.ascii_uppercase)
-                ),
-            ],
-        }
-    )
+                    "styles": {
+                        "body": {"backgroundColor": bg},
+                        "footer": {"backgroundColor": bg},
+                    },
+                }
+                for opt, a in zip(options, string.ascii_uppercase)
+            ),
+        ],
+    }
 
 
 CHATFLOW_DATA = load_chatflow(Path("resource/chatflow.yaml"))

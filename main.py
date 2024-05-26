@@ -62,11 +62,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[dict[str, Any]]:
     chatflow = Chatflow()
 
     async with line_client:
-        yield {
-            "parser": parser,
-            "line_api": line_api,
-            "chatflow": chatflow,
-        }
+        yield dict(
+            parser=parser,
+            line_api=line_api,
+            chatflow=chatflow,
+        )
 
 
 app = FastAPI(lifespan=lifespan)
@@ -75,22 +75,30 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/callback")
 async def handle_callback(
-    request: Request, x_line_signature: Annotated[str, Header()]
+    request: Request,
+    x_line_signature: Annotated[str, Header()],
 ) -> str:
+    state = request.state
+    parser: WebhookParser = state.parser
+    line_api: AsyncMessagingApi = state.line_api
+    chatflow: Chatflow = state.chatflow
+
     body = await request.body()
     body = body.decode()
 
-    events = await line_parse_events(body, x_line_signature)
+    events = await line_parse_events(x_line_signature, body, parser)
 
     for event in events:
-        await handle_event(event)
+        await handle_event(event, line_api, chatflow)
 
     return "OK"
 
 
-async def line_parse_events(body: str, x_line_signature: str) -> list[Event]:
-    parser: WebhookParser = app.state.parser
-
+async def line_parse_events(
+    x_line_signature: str,
+    body: str,
+    parser: WebhookParser,
+) -> list[Event]:
     try:
         events = parser.parse(body, x_line_signature)
 
@@ -103,10 +111,11 @@ async def line_parse_events(body: str, x_line_signature: str) -> list[Event]:
     return events
 
 
-async def handle_event(event: Event) -> None:
-    chatflow: Chatflow = app.state.chatflow
-    line_api: AsyncMessagingApi = app.state.line_api
-
+async def handle_event(
+    event: Event,
+    line_api: AsyncMessagingApi,
+    chatflow: Chatflow,
+) -> None:
     match event:
         case Event(
             source=Source(user_id=str(user_id)),

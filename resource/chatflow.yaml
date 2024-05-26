@@ -22,8 +22,9 @@ Q1Intro:
     dest: Q1S1
 Q1S1:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q1S1
         title: 問題1：梅菜扣肉中的「梅乾菜」是如何製作的？
         options:
@@ -39,8 +40,9 @@ Q1S1:
     answer: A
 Q1S2:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q1S2
         title: 問題2：梅菜扣肉中的五花肉應該如何處理才能達到最佳口感？
         options:
@@ -56,8 +58,9 @@ Q1S2:
     answer: B
 Q1S3:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q1S3
         title: 問題3：在調味梅菜扣肉的醬汁時，通常需要添加哪些基本調味料？
         options:
@@ -73,8 +76,9 @@ Q1S3:
     answer: B
 Q1S4:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q1S4
         title: 問題4：比賽開始前，你的主要競爭對手走了過來，向你問起你的菜式準備情況。你感受到他的目光緊盯著你的每一個動作，仿佛想要從中窺探你的秘密。你猶豫了一下，該如何回應呢？
         options:
@@ -90,8 +94,9 @@ Q1S4:
     label: Q1S4
 Q1S5:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q1S5
         title: 問題5：當你全神貫注於你的料理時，你突然聽到了旁邊參賽者的一陣哀號聲。看向他的料理桌，你發現他正陷入了困境，手忙腳亂地處理著材料。你感受到了他的焦慮，你會怎麼做呢？
         options:
@@ -107,8 +112,9 @@ Q1S5:
     label: Q1S5
 Q1S6:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q1S6
         title: 問題6：隨著比賽的進行，時間在不知不覺中流逝，你發現自己的料理進度遠遠落後於預期。當你看著手上還有大量的工作要做，而時間卻已所剩無幾時，你感到一絲絲絕望。在這關鍵時刻，你的想法是？
         options:
@@ -137,8 +143,9 @@ Q2Intro:
     dest: Q2S1
 Q2S1:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q2S1
         title: 問題1：客家小炒的主要食材是什麼？
         options:
@@ -154,8 +161,9 @@ Q2S1:
     answer: A
 Q2S2:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q2S2
         title: 問題2：客家小炒可以展現出客家美食的何種魅力？
         options:
@@ -171,8 +179,9 @@ Q2S2:
     answer: C
 Q2S3:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q2S3
         title: 問題3：客家小炒的烹調過程中，哪些配料是必不可少的？
         options:
@@ -188,8 +197,9 @@ Q2S3:
     answer: C
 Q2S4:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q2S4
         title: 問題4：當你正全神貫注地準備你的菜式時，突然間，你的設備出現了一點小問題，現場煙霧裊裊彌漫，讓你的心情陷入了緊張和焦慮之中。就在此時，你的競爭對手走了過來，看著你的情況，主動伸出了援手。你心中一動，你會做出怎樣的選擇呢？
         options:
@@ -205,8 +215,9 @@ Q2S4:
     label: Q2S4
 Q2S5:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q2S5
         title: 問題5：中場休息時間，你的手機突然響起，是家人打來的關心電話。他們想知道你的表現如何，你會如何向他們描述呢？
         options:
@@ -222,8 +233,9 @@ Q2S5:
     label: Q2S5
 Q2S6:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q2S6
         title: 問題6：隨著比賽進入尾聲，你發現自己竟然有一些額外的時間可以做最後的準備。在這關鍵時刻，你會選擇怎樣利用這段寶貴的時間呢？
         options:
@@ -254,8 +266,9 @@ Q3Intro:
     dest: Q3S1
 Q3S1:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q3S1
         title: 問題1：傳統客家擂茶的主要成分有哪些？
         options:
@@ -271,8 +284,9 @@ Q3S1:
     answer: A
 Q3S2:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q3S2
         title: 問題2：在製作擂茶的過程中，「擂」這個動作是指什麼？
         options:
@@ -288,8 +302,9 @@ Q3S2:
     answer: B
 Q3S3:
   messages:
-    - type: template_1
+    - type: template
       data:
+        id: 1
         label: Q3S3
         title: 問題3：擂茶喝起來的味道偏向何者？
         options:
@@ -305,8 +320,9 @@ Q3S3:
     answer: A
 Q3S4:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q3S4
         title: 問題4：當你正全神貫注地進行料理時，主持人突然宣布了一項新的料理規則，讓現場的氣氛瞬間緊張起來。這個新的規則打亂了你原本精心準備的計劃，你會如何應對這突如其來的變化呢？
         options:
@@ -322,8 +338,9 @@ Q3S4:
     label: Q3S4
 Q3S5:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q3S5
         title: 問題5：當你正專注於比賽時，突然間，你的親朋好友驚喜地出現在現場，讓你感到非常意外，你的想法是？
         options:
@@ -339,8 +356,9 @@ Q3S5:
     label: Q3S5
 Q3S6:
   messages:
-    - type: template_2
+    - type: template
       data:
+        id: 2
         label: Q3S6
         title: 問題6：當你正專注於比賽時，突然發現有一個參賽者在偷偷地對你的料理進行干擾，讓你感到非常惱火和不安。你知道這樣的行為會影響到你的表現，你會如何處理這個棘手的情況呢？
         options:
