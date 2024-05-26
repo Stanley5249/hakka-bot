@@ -83,13 +83,15 @@ async def handle_callback(
     line_api: AsyncMessagingApi = state.line_api
     chatflow: Chatflow = state.chatflow
 
+    url = str(request.base_url)
+
     body = await request.body()
     body = body.decode()
 
     events = await line_parse_events(x_line_signature, body, parser)
 
     for event in events:
-        await handle_event(event, line_api, chatflow)
+        await handle_event(event, line_api, chatflow, url)
 
     return "OK"
 
@@ -115,6 +117,7 @@ async def handle_event(
     event: Event,
     line_api: AsyncMessagingApi,
     chatflow: Chatflow,
+    url: str,
 ) -> None:
     match event:
         case Event(
@@ -143,16 +146,19 @@ async def handle_event(
 
     req = ReplyMessageRequest(
         replyToken=token,
-        messages=chat.get_messages(),
+        messages=chat.get_messages(url),
         notificationDisabled=None,
     )
     try:
-        await line_api.reply_message(req)
+        res = await line_api.reply_message(req)
 
     except ApiException as e:
-        if TYPE_CHECKING:
-            e.body = cast(str, e.body)
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, json.loads(e.body))
+        data = json.loads(e.body)  # type: ignore
+        logger.error(data)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, data)
+
+    else:
+        logger.debug(res)
 
 
 if __name__ == "__main__":

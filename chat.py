@@ -9,10 +9,16 @@ from os import PathLike
 from pathlib import Path
 import string
 from typing import Any, Protocol, TypedDict, TypeGuard
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote, urljoin
 
 import yaml
-from linebot.v3.messaging import FlexContainer, FlexMessage, Message, TextMessage
+from linebot.v3.messaging import (
+    FlexContainer,
+    FlexMessage,
+    Message,
+    TextMessage,
+    ImageMessage,
+)
 
 __all__ = ["Chatflow"]
 
@@ -33,7 +39,7 @@ class RawAction(TypedDict):
 
 class ChatLike(Protocol):
     @abstractmethod
-    def get_messages(self) -> Sequence[Message]: ...
+    def get_messages(self, url: str = "") -> Sequence[Message]: ...
 
     @abstractmethod
     def transition(self, text: str) -> ChatLike: ...
@@ -49,8 +55,17 @@ class ChatNext(ChatLike):
     dest: str
     state: Counter[str]
 
-    def get_messages(self) -> list[Message]:
-        return self.messages
+    def get_messages(self, url: str = "") -> list[Message]:
+        return [
+            ImageMessage(
+                quickReply=None,
+                originalContentUrl=urljoin(url, m.original_content_url),
+                previewImageUrl=urljoin(url, m.preview_image_url),
+            )
+            if isinstance(m, ImageMessage)
+            else m
+            for m in self.messages
+        ]
 
     def transition(self, text: str) -> ChatLike:
         return CHATFLOW_DATA[self.dest](self.state)
@@ -87,7 +102,7 @@ class ChatQA(ChatLike):
     state: Counter[str]
     attempt: set[str] = field(default_factory=set)
 
-    def get_messages(self) -> Sequence[Message]:
+    def get_messages(self, url: str = "") -> Sequence[Message]:
         return self.messages
 
     def transition(self, text: str) -> ChatLike:
@@ -123,7 +138,7 @@ class ChatStore(ChatLike):
     label: str
     state: Counter[str]
 
-    def get_messages(self) -> Sequence[Message]:
+    def get_messages(self, url: str = "") -> Sequence[Message]:
         return self.messages
 
     def transition(self, text: str) -> ChatLike:
@@ -150,7 +165,7 @@ class ChatEnd(ChatLike):
     dest: str
     state: Counter[str]
 
-    def get_messages(self) -> Sequence[Message]:
+    def get_messages(self, url: str = "") -> Sequence[Message]:
         ((k, v),) = self.state.most_common(1)
         i = ord(k) - ord("A")
         return [self.messages[i]]
@@ -161,7 +176,7 @@ class ChatEnd(ChatLike):
 
 @dataclass
 class ChatInit(ChatLike):
-    def get_messages(self) -> list[Message]:
+    def get_messages(self, url: str = "") -> list[Message]:
         return []
 
     def transition(self, text: str) -> ChatLike:
@@ -234,6 +249,16 @@ def parse_message(raw: Any) -> Message:
                 quickReply=None,
                 text=data,
                 quoteToken=None,
+            )
+        case {
+            "type": "image",
+            "original": str(original),
+            "preview": str(preview),
+        }:
+            return ImageMessage(
+                quickReply=None,
+                originalContentUrl=quote(original),
+                previewImageUrl=quote(preview),
             )
         case {"type": "flex", "data": {**data}}:
             return FlexMessage(

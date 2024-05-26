@@ -6,6 +6,9 @@ Begin:
       data: 你作為一名充滿熱情的年輕廚師，也收到了這次大賽的邀請函。手握邀請函的你心中充滿了期待，決心在這個舞台上展現自己的廚藝，贏得大賽的勝利。你踏入了味覺之村，準備迎接即將到來的挑戰。
     - type: text
       data: 在比賽過程中，你將會遇到各種問題和選擇，這些選擇將反映你的性格特質。在大賽結束時，根據你的選擇，我們會給你一個人格測驗結果，幫助你更好地了解自己。
+    - type: image
+      original: static/original/邀請函1.png
+      preview: static/preview/邀請函1.png
   action:
     type: next
     dest: Q1Intro
