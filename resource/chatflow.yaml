@@ -357,11 +357,13 @@ Q3S6:
 End:
   messages:
     - type: text
-      data: |-
-        樂觀積極（A選項）
-        性格調皮，渴望新鮮感（B選項）
-        富有耐心、專一（C選項）
-        內心敏感，小心翼翼，易受觸動（D選項）
+      data: 樂觀積極
+    - type: text
+      data: 性格調皮，渴望新鮮感
+    - type: text
+      data: 富有耐心、專一
+    - type: text
+      data: 內心敏感，小心翼翼，易受觸動
   action:
-    type: next
+    type: end
     dest: Begin

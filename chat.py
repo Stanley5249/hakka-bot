@@ -40,14 +40,14 @@ class ChatLike(Protocol):
 
 
 class ChatMaker(Protocol):
-    def __call__(self, state: Counter) -> ChatLike: ...
+    def __call__(self, state: Counter[str]) -> ChatLike: ...
 
 
 @dataclass
 class ChatNext(ChatLike):
     messages: list[Message]
     dest: str
-    state: Counter
+    state: Counter[str]
 
     def get_messages(self) -> list[Message]:
         return self.messages
@@ -56,34 +56,26 @@ class ChatNext(ChatLike):
         return CHATFLOW_DATA[self.dest](self.state)
 
 
-UNKNOWN_ERROR = [
-    TextMessage(
-        quickReply=None,
-        text="很抱歉，我不太懂你說的。",
-        quoteToken=None,
-    )
-]
-QUESTION_MISMATCH = [
-    TextMessage(
-        quickReply=None,
-        text="你似乎看錯題目了。",
-        quoteToken=None,
-    )
-]
-WRONG_ANSWER = [
-    TextMessage(
-        quickReply=None,
-        text="再試試看吧！",
-        quoteToken=None,
-    )
-]
-DUPLICATE_ANSWER = [
-    TextMessage(
-        quickReply=None,
-        text="你已經選過了喔。",
-        quoteToken=None,
-    )
-]
+UNKNOWN_ERROR = TextMessage(
+    quickReply=None,
+    text="很抱歉，我不太懂你說的。",
+    quoteToken=None,
+)
+QUESTION_MISMATCH = TextMessage(
+    quickReply=None,
+    text="你似乎看錯題目了。",
+    quoteToken=None,
+)
+WRONG_ANSWER = TextMessage(
+    quickReply=None,
+    text="再試試看吧！",
+    quoteToken=None,
+)
+DUPLICATE_ANSWER = TextMessage(
+    quickReply=None,
+    text="你已經選過了喔。",
+    quoteToken=None,
+)
 
 
 @dataclass
@@ -92,7 +84,7 @@ class ChatQA(ChatLike):
     dest: str
     label: str
     answer: str
-    state: Counter
+    state: Counter[str]
     attempt: set[str] = field(default_factory=set)
 
     def get_messages(self) -> Sequence[Message]:
@@ -105,20 +97,20 @@ class ChatQA(ChatLike):
             case {"q": [q], "a": [a]}:
                 pass
             case _:
-                self.messages = UNKNOWN_ERROR
+                self.messages = [UNKNOWN_ERROR]
                 return self
 
         if q != self.label:
-            self.messages = QUESTION_MISMATCH
+            self.messages = [QUESTION_MISMATCH]
             return self
 
         if a in self.attempt:
-            self.messages = DUPLICATE_ANSWER
+            self.messages = [DUPLICATE_ANSWER]
             return self
 
         if a != self.answer:
             self.attempt.add(a)
-            self.messages = WRONG_ANSWER
+            self.messages = [WRONG_ANSWER]
             return self
 
         return CHATFLOW_DATA[self.dest](self.state)
@@ -129,7 +121,7 @@ class ChatStore(ChatLike):
     messages: Sequence[Message]
     dest: str
     label: str
-    state: Counter
+    state: Counter[str]
 
     def get_messages(self) -> Sequence[Message]:
         return self.messages
@@ -141,15 +133,30 @@ class ChatStore(ChatLike):
             case {"q": [q], "a": [a]}:
                 pass
             case _:
-                self.messages = UNKNOWN_ERROR
+                self.messages = [UNKNOWN_ERROR]
                 return self
 
         if q != self.label:
-            self.messages = QUESTION_MISMATCH
+            self.messages = [QUESTION_MISMATCH]
             return self
 
         self.state[a] += 1
         return CHATFLOW_DATA[self.dest](self.state)
+
+
+@dataclass
+class ChatEnd(ChatLike):
+    messages: Sequence[Message]
+    dest: str
+    state: Counter[str]
+
+    def get_messages(self) -> Sequence[Message]:
+        ((k, v),) = self.state.most_common(1)
+        i = ord(k) - ord("A")
+        return [self.messages[i]]
+
+    def transition(self, text: str) -> ChatLike:
+        return CHATFLOW_DATA[self.dest](Counter())
 
 
 @dataclass
@@ -215,6 +222,8 @@ def parse_chat(raw: RawChat) -> ChatMaker:
             return partial(ChatQA, messages, dest, label, a)
         case {"type": "store", "dest": str(dest), "label": str(label)}:
             return partial(ChatStore, messages, dest, label)
+        case {"type": "end", "dest": str(dest)}:
+            return partial(ChatEnd, messages, dest)
     raise ValueError(f"invalid action type, {raw['action']}")
 
 
