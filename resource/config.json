@@ -21,11 +21,11 @@
     }
   },
   "handlers": {
-    "stderr": {
+    "stdout": {
       "class": "logging.StreamHandler",
-      "level": "WARNING",
+      "level": "INFO",
       "formatter": "simple",
-      "stream": "ext://sys.stderr"
+      "stream": "ext://sys.stdout"
     },
     "file_json": {
       "class": "logging.handlers.RotatingFileHandler",
@@ -38,7 +38,7 @@
     "queue_handler": {
       "class": "logging.handlers.QueueHandler",
       "handlers": [
-        "stderr",
+        "stdout",
         "file_json"
       ],
       "respect_handler_level": true
@@ -48,7 +48,7 @@
     "root": {
       "level": "DEBUG",
       "handlers": [
-        "queue_handler"
+        "stdout"
       ]
     }
   }
