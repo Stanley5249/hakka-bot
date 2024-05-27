@@ -1,28 +1,31 @@
 Begin:
   messages:
-    - type: text
-      data: 在一個風景如畫的小鎮「味覺之村」，每年一度的客家美食大賽即將拉開帷幕。這個大賽不僅吸引了來自世界各地的美食愛好者和廚師，也成為了一個展示客家文化和廚藝的盛會。參賽者們紛紛趕來，希望能贏得豐厚的獎金和「客家美食大師」的榮譽稱號。
-    - type: text
-      data: 你作為一名充滿熱情的年輕廚師，也收到了這次大賽的邀請函。手握邀請函的你心中充滿了期待，決心在這個舞台上展現自己的廚藝，贏得大賽的勝利。你踏入了味覺之村，準備迎接即將到來的挑戰。
-    - type: text
-      data: 在比賽過程中，你將會遇到各種問題和選擇，這些選擇將反映你的性格特質。在大賽結束時，根據你的選擇，我們會給你一個人格測驗結果，幫助你更好地了解自己。
     - type: image
-      original: static/original/邀請函1.png
-      preview: static/preview/邀請函1.png
+      data:
+        original: static/original/Begin-1.png
+        preview: static/preview/Begin-1.png
+    - type: image
+      data:
+        original: static/original/Begin-2.png
+        preview: static/preview/Begin-2.png
   action:
-    type: next
-    dest: Q1Intro
+    type: default
+    data:
+      dest: Q1Intro
 Q1Intro:
   messages:
     - type: text
       data: 比賽正式開始，你站在熱鬧的比賽場地中間，耳邊傳來觀眾們的歡呼聲。第一回合的挑戰是製作經典的梅菜扣肉。這道菜不僅考驗你的烹飪技巧，還需要你對客家風味的深刻理解。「各位參賽者，準備好你們的食材和設備，梅菜扣肉挑戰即將開始！」主持人宣布後，你迅速進入狀態，開始著手準備。
     - type: text
-      data: |-
-        第一回合：
-        菜餚：梅菜扣肉
+      data: 第一回合：梅菜扣肉
+    - type: image
+      data:
+        original: static/original/Q1Intro.png
+        preview: static/preview/Q1Intro.png
   action:
-    type: next
-    dest: Q1S1
+    type: default
+    data:
+      dest: Q1S1
 Q1S1:
   messages:
     - type: template
@@ -38,9 +41,10 @@ Q1S1:
         bg: "#FDF5E6"
   action:
     type: qa
-    dest: Q1S2
-    label: Q1S1
-    answer: A
+    data:
+      dest: Q1S2
+      label: Q1S1
+      answer: A
 Q1S2:
   messages:
     - type: template
@@ -56,9 +60,10 @@ Q1S2:
         bg: "#FDF5E6"
   action:
     type: qa
-    dest: Q1S3
-    label: Q1S2
-    answer: B
+    data:
+      dest: Q1S3
+      label: Q1S2
+      answer: B
 Q1S3:
   messages:
     - type: template
@@ -74,11 +79,16 @@ Q1S3:
         bg: "#FDF5E6"
   action:
     type: qa
-    dest: Q1S4
-    label: Q1S3
-    answer: B
+    data:
+      dest: Q1S4
+      label: Q1S3
+      answer: B
 Q1S4:
   messages:
+    - type: image
+      data:
+        original: static/original/Q1S4.png
+        preview: static/preview/Q1S4.png
     - type: template
       data:
         id: 2
@@ -93,10 +103,15 @@ Q1S4:
         bg: "#FDF5E6"
   action:
     type: store
-    dest: Q1S5
-    label: Q1S4
+    data:
+      dest: Q1S5
+      label: Q1S4
 Q1S5:
   messages:
+    - type: image
+      data:
+        original: static/original/Q1S5.png
+        preview: static/preview/Q1S5.png
     - type: template
       data:
         id: 2
@@ -111,10 +126,15 @@ Q1S5:
         bg: "#FDF5E6"
   action:
     type: store
-    dest: Q1S6
-    label: Q1S5
+    data:
+      dest: Q1S6
+      label: Q1S5
 Q1S6:
   messages:
+    - type: image
+      data:
+        original: static/original/Q1S6.png
+        preview: static/preview/Q1S6.png
     - type: template
       data:
         id: 2
@@ -129,8 +149,9 @@ Q1S6:
         bg: "#FDF5E6"
   action:
     type: store
-    dest: Q2Intro
-    label: Q1S6
+    data:
+      dest: Q2Intro
+      label: Q1S6
 Q2Intro:
   messages:
     - type: text
@@ -138,12 +159,15 @@ Q2Intro:
     - type: text
       data: 「恭喜你們完成了第一回合的比賽！」主持人宣布道。「現在，請大家休息片刻，接下來我們將進入第二回合的客家小吃挑戰。」
     - type: text
-      data: |-
-        第二回合：
-        菜餚：客家小炒
+      data: 第二回合：客家小炒
+    - type: image
+      data:
+        original: static/original/Q2Intro.png
+        preview: static/preview/Q2Intro.png
   action:
-    type: next
-    dest: Q2S1
+    type: default
+    data:
+      dest: Q2S1
 Q2S1:
   messages:
     - type: template
@@ -159,9 +183,10 @@ Q2S1:
         bg: "#FFE4E1"
   action:
     type: qa
-    dest: Q2S2
-    label: Q2S1
-    answer: A
+    data:
+      dest: Q2S2
+      label: Q2S1
+      answer: A
 Q2S2:
   messages:
     - type: template
@@ -177,9 +202,10 @@ Q2S2:
         bg: "#FFE4E1"
   action:
     type: qa
-    dest: Q2S3
-    label: Q2S2
-    answer: C
+    data:
+      dest: Q2S3
+      label: Q2S2
+      answer: C
 Q2S3:
   messages:
     - type: template
@@ -195,11 +221,16 @@ Q2S3:
         bg: "#FFE4E1"
   action:
     type: qa
-    dest: Q2S4
-    label: Q2S3
-    answer: C
+    data:
+      dest: Q2S4
+      label: Q2S3
+      answer: C
 Q2S4:
   messages:
+    - type: image
+      data:
+        original: static/original/Q2S4.png
+        preview: static/preview/Q2S4.png
     - type: template
       data:
         id: 2
@@ -214,10 +245,15 @@ Q2S4:
         bg: "#FFE4E1"
   action:
     type: store
-    dest: Q2S5
-    label: Q2S4
+    data:
+      dest: Q2S5
+      label: Q2S4
 Q2S5:
   messages:
+    - type: image
+      data:
+        original: static/original/Q2S5.png
+        preview: static/preview/Q2S5.png
     - type: template
       data:
         id: 2
@@ -232,10 +268,15 @@ Q2S5:
         bg: "#FFE4E1"
   action:
     type: store
-    dest: Q2S6
-    label: Q2S5
+    data:
+      dest: Q2S6
+      label: Q2S5
 Q2S6:
   messages:
+    - type: image
+      data:
+        original: static/original/Q2S6.png
+        preview: static/preview/Q2S6.png
     - type: template
       data:
         id: 2
@@ -250,8 +291,9 @@ Q2S6:
         bg: "#FFE4E1"
   action:
     type: store
-    dest: Q3Intro
-    label: Q2S6
+    data:
+      dest: Q3Intro
+      label: Q2S6
 Q3Intro:
   messages:
     - type: text
@@ -261,12 +303,15 @@ Q3Intro:
     - type: text
       data: 「第三回合的挑戰是擂茶，請參賽者們開始準備！」主持人宣布後，你立刻投入到食材的準備中。
     - type: text
-      data: |-
-        第三回合：
-        菜餚：擂茶
+      data: 第三回合：擂茶
+    - type: image
+      data:
+        original: static/original/Q3Intro.png
+        preview: static/preview/Q3Intro.png
   action:
-    type: next
-    dest: Q3S1
+    type: default
+    data:
+      dest: Q3S1
 Q3S1:
   messages:
     - type: template
@@ -282,9 +327,10 @@ Q3S1:
         bg: "#F5FFFA"
   action:
     type: qa
-    dest: Q3S2
-    label: Q3S1
-    answer: A
+    data:
+      dest: Q3S2
+      label: Q3S1
+      answer: A
 Q3S2:
   messages:
     - type: template
@@ -300,9 +346,10 @@ Q3S2:
         bg: "#F5FFFA"
   action:
     type: qa
-    dest: Q3S3
-    label: Q3S2
-    answer: B
+    data:
+      dest: Q3S3
+      label: Q3S2
+      answer: B
 Q3S3:
   messages:
     - type: template
@@ -318,11 +365,16 @@ Q3S3:
         bg: "#F5FFFA"
   action:
     type: qa
-    dest: Q3S4
-    label: Q3S3
-    answer: A
+    data:
+      dest: Q3S4
+      label: Q3S3
+      answer: A
 Q3S4:
   messages:
+    - type: image
+      data:
+        original: static/original/Q3S4.png
+        preview: static/preview/Q3S4.png
     - type: template
       data:
         id: 2
@@ -337,10 +389,15 @@ Q3S4:
         bg: "#F5FFFA"
   action:
     type: store
-    dest: Q3S5
-    label: Q3S4
+    data:
+      dest: Q3S5
+      label: Q3S4
 Q3S5:
   messages:
+    - type: image
+      data:
+        original: static/original/Q3S5.png
+        preview: static/preview/Q3S5.png
     - type: template
       data:
         id: 2
@@ -355,10 +412,15 @@ Q3S5:
         bg: "#F5FFFA"
   action:
     type: store
-    dest: Q3S6
-    label: Q3S5
+    data:
+      dest: Q3S6
+      label: Q3S5
 Q3S6:
   messages:
+    - type: image
+      data:
+        original: static/original/Q3S6.png
+        preview: static/preview/Q3S6.png
     - type: template
       data:
         id: 2
@@ -373,18 +435,25 @@ Q3S6:
         bg: "#F5FFFA"
   action:
     type: store
-    dest: End
-    label: Q3S6
+    data:
+      dest: End
+      label: Q3S6
 End:
-  messages:
-    - type: text
-      data: 樂觀積極
-    - type: text
-      data: 性格調皮，渴望新鮮感
-    - type: text
-      data: 富有耐心、專一
-    - type: text
-      data: 內心敏感，小心翼翼，易受觸動
+  messages: []
   action:
     type: end
-    dest: Begin
+    data:
+      dest: Begin
+      results:
+        - original: static/original/EndA.png
+          preview: static/preview/EndA.png
+          text: 樂觀積極
+        - original: static/original/EndB.png
+          preview: static/preview/EndB.png
+          text: 性格調皮，渴望新鮮感
+        - original: static/original/EndC.png
+          preview: static/preview/EndC.png
+          text: 富有耐心、專一
+        - original: static/original/EndD.png
+          preview: static/preview/EndD.png
+          text: 內心敏感，小心翼翼，易受觸動

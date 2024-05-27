@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import string
 from abc import abstractmethod
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import partial
 from os import PathLike
 from pathlib import Path
-import string
 from typing import Any, Protocol, TypedDict, TypeGuard
 from urllib.parse import parse_qs, quote, urljoin
 
@@ -15,12 +15,18 @@ import yaml
 from linebot.v3.messaging import (
     FlexContainer,
     FlexMessage,
+    ImageMessage,
     Message,
     TextMessage,
-    ImageMessage,
 )
 
 __all__ = ["Chatflow"]
+
+
+UNKNOWN_ERROR = "很抱歉，我有點不太懂。"
+QUESTION_MISMATCH = "你似乎看錯題目了。"
+WRONG_ANSWER = "再試試看吧！"
+DUPLICATE_ANSWER = "你已經選過了喔。"
 
 
 class RawChat(TypedDict):
@@ -35,75 +41,49 @@ class RawMessage(TypedDict):
 
 class RawAction(TypedDict):
     type: str
+    data: Any
+
+
+class RawResult(TypedDict):
+    original: str
+    preview: str
+    text: str
+
+
+class ChatMaker(Protocol):
+    def __call__(self, *, state: Counter[str]) -> ChatLike: ...
+
+
+class MessageMaker(Protocol):
+    def __call__(self, **kwargs: Any) -> Message: ...
 
 
 class ChatLike(Protocol):
     @abstractmethod
-    def get_messages(self, url: str = "") -> Sequence[Message]: ...
+    def get_messages(self, **kwargs: Any) -> list[Message]: ...
 
     @abstractmethod
     def transition(self, text: str) -> ChatLike: ...
 
 
-class ChatMaker(Protocol):
-    def __call__(self, state: Counter[str]) -> ChatLike: ...
-
-
 @dataclass
-class ChatNext(ChatLike):
-    messages: list[Message]
+class ChatDefault(ChatLike):
     dest: str
-    state: Counter[str]
+    messages: list[MessageMaker]
+    state: Counter[str] = field(kw_only=True)
 
-    def get_messages(self, url: str = "") -> list[Message]:
-        return [
-            ImageMessage(
-                quickReply=None,
-                originalContentUrl=urljoin(url, m.original_content_url),
-                previewImageUrl=urljoin(url, m.preview_image_url),
-            )
-            if isinstance(m, ImageMessage)
-            else m
-            for m in self.messages
-        ]
+    def get_messages(self, **kwargs: Any) -> list[Message]:
+        return [m(**kwargs) for m in self.messages]
 
     def transition(self, text: str) -> ChatLike:
-        return CHATFLOW_DATA[self.dest](self.state)
-
-
-UNKNOWN_ERROR = TextMessage(
-    quickReply=None,
-    text="很抱歉，我不太懂你說的。",
-    quoteToken=None,
-)
-QUESTION_MISMATCH = TextMessage(
-    quickReply=None,
-    text="你似乎看錯題目了。",
-    quoteToken=None,
-)
-WRONG_ANSWER = TextMessage(
-    quickReply=None,
-    text="再試試看吧！",
-    quoteToken=None,
-)
-DUPLICATE_ANSWER = TextMessage(
-    quickReply=None,
-    text="你已經選過了喔。",
-    quoteToken=None,
-)
+        return CHATFLOW_MAKERS[self.dest](state=self.state)
 
 
 @dataclass
-class ChatQA(ChatLike):
-    messages: Sequence[Message]
-    dest: str
+class ChatQA(ChatDefault):
     label: str
     answer: str
-    state: Counter[str]
     attempt: set[str] = field(default_factory=set)
-
-    def get_messages(self, url: str = "") -> Sequence[Message]:
-        return self.messages
 
     def transition(self, text: str) -> ChatLike:
         qa = parse_qs(text)
@@ -112,34 +92,28 @@ class ChatQA(ChatLike):
             case {"q": [q], "a": [a]}:
                 pass
             case _:
-                self.messages = [UNKNOWN_ERROR]
+                self.messages = [partial(make_text_message, UNKNOWN_ERROR)]
                 return self
 
         if q != self.label:
-            self.messages = [QUESTION_MISMATCH]
+            self.messages = [partial(make_text_message, QUESTION_MISMATCH)]
             return self
 
         if a in self.attempt:
-            self.messages = [DUPLICATE_ANSWER]
+            self.messages = [partial(make_text_message, DUPLICATE_ANSWER)]
             return self
 
         if a != self.answer:
             self.attempt.add(a)
-            self.messages = [WRONG_ANSWER]
+            self.messages = [partial(make_text_message, WRONG_ANSWER)]
             return self
 
-        return CHATFLOW_DATA[self.dest](self.state)
+        return super().transition(text)
 
 
 @dataclass
-class ChatStore(ChatLike):
-    messages: Sequence[Message]
-    dest: str
+class ChatStore(ChatDefault):
     label: str
-    state: Counter[str]
-
-    def get_messages(self, url: str = "") -> Sequence[Message]:
-        return self.messages
 
     def transition(self, text: str) -> ChatLike:
         qa = parse_qs(text)
@@ -148,39 +122,43 @@ class ChatStore(ChatLike):
             case {"q": [q], "a": [a]}:
                 pass
             case _:
-                self.messages = [UNKNOWN_ERROR]
+                self.messages = [partial(make_text_message, UNKNOWN_ERROR)]
                 return self
 
         if q != self.label:
-            self.messages = [QUESTION_MISMATCH]
+            self.messages = [partial(make_text_message, QUESTION_MISMATCH)]
             return self
 
         self.state[a] += 1
-        return CHATFLOW_DATA[self.dest](self.state)
+        return super().transition(text)
 
 
 @dataclass
-class ChatEnd(ChatLike):
-    messages: Sequence[Message]
-    dest: str
-    state: Counter[str]
+class ChatEnd(ChatDefault):
+    data: list[RawResult]
 
-    def get_messages(self, url: str = "") -> Sequence[Message]:
+    def get_messages(self, **kwargs: Any) -> list[Message]:
         ((k, v),) = self.state.most_common(1)
         i = ord(k) - ord("A")
-        return [self.messages[i]]
+        if i < len(self.data):
+            x = self.data[i]
+            return [
+                make_image_message(x["original"], x["preview"], **kwargs),
+                make_text_message(x["text"], **kwargs),
+            ]
+        return [make_text_message(UNKNOWN_ERROR, **kwargs)]
 
     def transition(self, text: str) -> ChatLike:
-        return CHATFLOW_DATA[self.dest](Counter())
+        return CHATFLOW_MAKERS[self.dest](state=Counter())
 
 
 @dataclass
 class ChatInit(ChatLike):
-    def get_messages(self, url: str = "") -> list[Message]:
+    def get_messages(self, **kwargs: Any) -> list[Message]:
         return []
 
     def transition(self, text: str) -> ChatLike:
-        return CHATFLOW_DATA["Begin"](Counter())
+        return CHATFLOW_MAKERS["Begin"](state=Counter())
 
 
 class Chatflow(defaultdict[str, ChatLike]):
@@ -230,42 +208,39 @@ def parse_chatflow(raw: dict[str, RawChat]) -> dict[str, ChatMaker]:
 
 def parse_chat(raw: RawChat) -> ChatMaker:
     messages = [parse_message(m) for m in raw["messages"]]
+
     match raw["action"]:
-        case {"type": "next", "dest": str(dest)}:
-            return partial(ChatNext, messages, dest)
-        case {"type": "qa", "dest": str(dest), "label": str(label), "answer": str(a)}:
-            return partial(ChatQA, messages, dest, label, a)
-        case {"type": "store", "dest": str(dest), "label": str(label)}:
-            return partial(ChatStore, messages, dest, label)
-        case {"type": "end", "dest": str(dest)}:
-            return partial(ChatEnd, messages, dest)
+        case {"type": "default", "data": {"dest": str(dest)}}:
+            return partial(ChatDefault, dest, messages)
+        case {
+            "type": "qa",
+            "data": {"dest": str(dest), "label": str(label), "answer": str(ans)},
+        }:
+            return partial(ChatQA, dest, messages, label, ans)
+        case {"type": "store", "data": {"dest": str(dest), "label": str(label)}}:
+            return partial(ChatStore, dest, messages, label)
+        case {
+            "type": "end",
+            "data": {"dest": str(dest), "results": [*results]},
+        } if all(validate_result(r) for r in results):
+            return partial(ChatEnd, dest, messages, results)
     raise ValueError(f"invalid action type, {raw['action']}")
 
 
-def parse_message(raw: Any) -> Message:
+def parse_message(raw: RawMessage) -> MessageMaker:
     match raw:
         case {"type": "text", "data": str(data)}:
-            return TextMessage(
-                quickReply=None,
-                text=data,
-                quoteToken=None,
-            )
+            return partial(make_text_message, data)
         case {
             "type": "image",
-            "original": str(original),
-            "preview": str(preview),
+            "data": {
+                "original": str(original),
+                "preview": str(preview),
+            },
         }:
-            return ImageMessage(
-                quickReply=None,
-                originalContentUrl=quote(original),
-                previewImageUrl=quote(preview),
-            )
+            return partial(make_image_message, original, preview)
         case {"type": "flex", "data": {**data}}:
-            return FlexMessage(
-                quickReply=None,
-                altText="flex",
-                contents=FlexContainer.from_dict(data),
-            )
+            return partial(make_flex_message, data)
         case {
             "type": "template",
             "data": {
@@ -278,20 +253,52 @@ def parse_message(raw: Any) -> Message:
             },
         } if all(isinstance(opt, str) for opt in options):
             if id == 1:
-                data = from_template_1(label, title, options, fg, bg)
+                data = make_contents_from_template_1(label, title, options, fg, bg)
             elif id == 2:
-                data = from_template_2(label, title, options, fg, bg)
+                data = make_contents_from_template_2(label, title, options, fg, bg)
             else:
                 raise ValueError(f"invalid template id, {id}")
-            return FlexMessage(
-                quickReply=None,
-                altText="flex",
-                contents=FlexContainer.from_dict(data),
-            )
+            return partial(make_flex_message, data)
     raise ValueError(f"invalid message type, {raw}")
 
 
-def from_template_1(
+def validate_result(raw: Any) -> TypeGuard[RawResult]:
+    match raw:
+        case {"original": str(), "preview": str(), "text": str()}:
+            return True
+    return False
+
+
+def make_text_message(text: str, **kwargs: Any) -> TextMessage:
+    return TextMessage(
+        quickReply=None,
+        text=text,
+        quoteToken=None,
+    )
+
+
+def make_image_message(
+    original: str,
+    preview: str,
+    url: str,
+    **kwargs: Any,
+) -> ImageMessage:
+    return ImageMessage(
+        quickReply=None,
+        originalContentUrl=urljoin(url, quote(original)),
+        previewImageUrl=urljoin(url, quote(preview)),
+    )
+
+
+def make_flex_message(contents: dict[str, Any], **kwargs: Any) -> FlexMessage:
+    return FlexMessage(
+        quickReply=None,
+        altText="flex",
+        contents=FlexContainer.from_dict(contents),
+    )
+
+
+def make_contents_from_template_1(
     label: str,
     title: str,
     options: Sequence[str],
@@ -331,7 +338,7 @@ def from_template_1(
     }
 
 
-def from_template_2(
+def make_contents_from_template_2(
     label: str,
     title: str,
     options: Sequence[str],
@@ -390,4 +397,4 @@ def from_template_2(
     }
 
 
-CHATFLOW_DATA = load_chatflow(Path("resource/chatflow.yaml"))
+CHATFLOW_MAKERS = load_chatflow(Path("resource/chatflow.yaml"))

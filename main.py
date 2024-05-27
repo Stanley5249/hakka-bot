@@ -146,7 +146,7 @@ async def handle_event(
 
     req = ReplyMessageRequest(
         replyToken=token,
-        messages=chat.get_messages(url),
+        messages=chat.get_messages(url=url),
         notificationDisabled=None,
     )
     try:
