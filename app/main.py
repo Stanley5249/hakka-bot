@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[dict[str, Any]]:
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 @app.post("/callback")
@@ -83,7 +83,9 @@ async def handle_callback(
     line_api: AsyncMessagingApi = state.line_api
     chatflow: Chatflow = state.chatflow
 
-    url = str(request.base_url)
+    url = str(request.base_url.replace(scheme="https"))
+
+    logger.info(f"request url: {url}")
 
     body = await request.body()
     body = body.decode()

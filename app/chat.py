@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import string
 from abc import abstractmethod
 from collections import Counter, defaultdict
@@ -22,6 +23,7 @@ from linebot.v3.messaging import (
 
 __all__ = ["Chatflow"]
 
+logger = logging.getLogger("__main__")
 
 UNKNOWN_ERROR = "很抱歉，我有點不太懂。"
 QUESTION_MISMATCH = "你似乎看錯題目了。"
@@ -283,11 +285,13 @@ def make_image_message(
     url: str,
     **kwargs: Any,
 ) -> ImageMessage:
-    return ImageMessage(
+    mes = ImageMessage(
         quickReply=None,
         originalContentUrl=urljoin(url, quote(original)),
         previewImageUrl=urljoin(url, quote(preview)),
     )
+    logger.info(f"make url: {mes.original_content_url}, {mes.preview_image_url}")
+    return mes
 
 
 def make_flex_message(contents: dict[str, Any], **kwargs: Any) -> FlexMessage:
@@ -397,4 +401,4 @@ def make_contents_from_template_2(
     }
 
 
-CHATFLOW_MAKERS = load_chatflow(Path("resource/chatflow.yaml"))
+CHATFLOW_MAKERS = load_chatflow(Path("app/resource/chatflow.yaml"))
