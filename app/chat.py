@@ -46,10 +46,9 @@ class RawAction(TypedDict):
     data: Any
 
 
-class RawResult(TypedDict):
+class RawImage(TypedDict):
     original: str
     preview: str
-    text: str
 
 
 class ChatMaker(Protocol):
@@ -137,17 +136,21 @@ class ChatStore(ChatDefault):
 
 @dataclass
 class ChatEnd(ChatDefault):
-    data: list[RawResult]
+    data: list[RawImage]
 
     def get_messages(self, **kwargs: Any) -> list[Message]:
         ((k, v),) = self.state.most_common(1)
         i = ord(k) - ord("A")
         if i < len(self.data):
             x = self.data[i]
-            return [
-                make_image_message(x["original"], x["preview"], **kwargs),
-                make_text_message(x["text"], **kwargs),
-            ]
+            msg = make_image_message(
+                x["original"],
+                x["preview"],
+                **kwargs,
+            )
+            res = super().get_messages(**kwargs)
+            res.append(msg)
+            return res
         return [make_text_message(UNKNOWN_ERROR, **kwargs)]
 
     def transition(self, text: str) -> ChatLike:
@@ -224,7 +227,7 @@ def parse_chat(raw: RawChat) -> ChatMaker:
         case {
             "type": "end",
             "data": {"dest": str(dest), "results": [*results]},
-        } if all(validate_result(r) for r in results):
+        } if all(validate_image(r) for r in results):
             return partial(ChatEnd, dest, messages, results)
     raise ValueError(f"invalid action type, {raw['action']}")
 
@@ -264,9 +267,9 @@ def parse_message(raw: RawMessage) -> MessageMaker:
     raise ValueError(f"invalid message type, {raw}")
 
 
-def validate_result(raw: Any) -> TypeGuard[RawResult]:
+def validate_image(raw: Any) -> TypeGuard[RawImage]:
     match raw:
-        case {"original": str(), "preview": str(), "text": str()}:
+        case {"original": str(), "preview": str()}:
             return True
     return False
 
@@ -285,13 +288,11 @@ def make_image_message(
     url: str,
     **kwargs: Any,
 ) -> ImageMessage:
-    mes = ImageMessage(
+    return ImageMessage(
         quickReply=None,
         originalContentUrl=urljoin(url, quote(original)),
         previewImageUrl=urljoin(url, quote(preview)),
     )
-    logger.info(f"make url: {mes.original_content_url}, {mes.preview_image_url}")
-    return mes
 
 
 def make_flex_message(contents: dict[str, Any], **kwargs: Any) -> FlexMessage:

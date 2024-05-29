@@ -4,6 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Annotated, Any, AsyncIterator, cast
 
+from chat import Chatflow
 from fastapi import FastAPI, Header, HTTPException, Request, status
 from fastapi.staticfiles import StaticFiles
 from linebot.v3 import WebhookParser
@@ -20,11 +21,10 @@ from linebot.v3.webhooks import (
     FollowEvent,
     MessageEvent,
     PostbackEvent,
-    Source,
     TextMessageContent,
+    UnfollowEvent,
+    UserSource,
 )
-
-from chat import Chatflow
 from logger import get_logger
 
 # ================================================================
@@ -84,8 +84,7 @@ async def handle_callback(
     chatflow: Chatflow = state.chatflow
 
     url = str(request.base_url.replace(scheme="https"))
-
-    logger.info(f"request url: {url}")
+    logger.debug(f"request url: {url}")
 
     body = await request.body()
     body = body.decode()
@@ -121,15 +120,33 @@ async def handle_event(
     chatflow: Chatflow,
     url: str,
 ) -> None:
-    match event:
-        case Event(
-            source=Source(user_id=str(user_id)),
-            reply_token=str(token),
-        ):
-            chat = chatflow[user_id]
+    logger.info(f"handle event: {event.type}")
+
+    match event.source:
+        case UserSource(user_id=str(user_id)):
+            pass
 
         case _:
+            logger.info(f"ignore source {event.source}")
             return
+
+    match event:
+        case UnfollowEvent():
+            chatflow.pop(user_id, None)
+            return
+
+        case FollowEvent():
+            chat = chatflow[user_id]
+            return
+
+        case Event(reply_token=str(token)):
+            pass
+
+        case _:
+            logger.info(f"ignore event {event.type}")
+            return
+
+    chat = chatflow[user_id]
 
     match event:
         case MessageEvent(message=TextMessageContent(text=text)):
@@ -139,9 +156,6 @@ async def handle_event(
         case PostbackEvent(postback=postback):
             chat = chat.transition(postback.data)
             chatflow[user_id] = chat
-
-        case FollowEvent():
-            pass
 
         case _:
             return
