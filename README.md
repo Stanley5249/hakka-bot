@@ -14,19 +14,19 @@ Follow these steps to install and run the project:
 1. Clone the repository to your local machine.
 
 ```sh
-git clone <repository_url>
+git clone "https://github.com/Stanley5249/hakka-bot.git"
 ```
 
 2. Navigate to the project directory.
 
 ```sh
-cd <project_directory>
+cd hakka-bot
 ```
 
 3. Install the required Python packages. It's recommended to use a virtual environment.
 
 ```sh
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
